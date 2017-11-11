@@ -11,6 +11,7 @@ from my_planning_graph import PlanningGraph
 
 from functools import lru_cache
 
+import re
 
 class AirCargoProblem(Problem):
     def __init__(self, cargos, planes, airports, initial: FluentState, goal: list):
@@ -47,12 +48,6 @@ class AirCargoProblem(Problem):
         list<Action>
             list of Action objects
         """
-
-        # TODO create concrete Action objects based on the domain action schema for: Load, Unload, and Fly
-        # concrete actions definition: specific literal action that does not include variables as with the schema
-        # for example, the action schema 'Load(c, p, a)' can represent the concrete actions 'Load(C1, P1, SFO)'
-        # or 'Load(C2, P2, JFK)'.  The actions for the planning problem must be concrete because the problems in
-        # forward search and Planning Graphs must use Propositional Logic
 
         def load_actions():
             """Create all concrete Load actions and return a list
@@ -126,6 +121,9 @@ class AirCargoProblem(Problem):
         :return: list of Action objects
         """
         def all_in(list1, list2):
+            """
+            Returns True if all elements in list1 are in list2
+            """
             for item in list1:
                 if item not in list2:
                     return False
@@ -201,8 +199,41 @@ class AirCargoProblem(Problem):
         conditions by ignoring the preconditions required for an action to be
         executed.
         """
-        # TODO implement (see Russell-Norvig Ed-3 10.2.3  or Russell-Norvig Ed-2 11.2)
+        fluents = decode_state(node.state, self.state_map)
+        pos = fluents.pos
         count = 0
+        plane_list = self.planes
+        waiting = {} # cargo waiting to be loaded by airport
+        empty = {} # planes with no cargo by airport
+        for a in self.airports:
+            waiting[a] = 0
+            empty[a] = 0
+        regex = r'(\w+)'
+        for goal in self.goal:
+            if goal not in pos:
+                _, c, a = re.findall(regex, str(goal))
+                in_plane = False
+                for p in self.planes:
+                    if expr("In({}, {})".format(c, p)) in pos:
+                        in_plane = True
+                        plane_list.remove(p)
+                        if expr("At({}, {})".format(p, a)) not in pos:
+                            count += 1
+                        break
+                if not in_plane:
+                    count += 3
+                    for a in self.airports:
+                        if expr("At({}, {})".format(c, a)) in pos:
+                            waiting[a] += 1
+        for p in plane_list:
+            for a in self.airports:
+                if expr("At({}, {})".format(p, a)) in pos:
+                    empty[a] += 1
+        for a in self.airports:
+            diff = waiting[a] - empty[a]
+            if diff > 0:
+                count += diff
+
         return count
 
 
