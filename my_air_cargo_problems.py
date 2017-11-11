@@ -202,12 +202,6 @@ class AirCargoProblem(Problem):
         fluents = decode_state(node.state, self.state_map)
         pos = fluents.pos
         count = 0
-        plane_list = self.planes
-        waiting = {} # cargo waiting to be loaded by airport
-        empty = {} # planes with no cargo by airport
-        for a in self.airports:
-            waiting[a] = 0
-            empty[a] = 0
         regex = r'(\w+)'
         for goal in self.goal:
             if goal not in pos:
@@ -216,24 +210,13 @@ class AirCargoProblem(Problem):
                 for p in self.planes:
                     if expr("In({}, {})".format(c, p)) in pos:
                         in_plane = True
-                        plane_list.remove(p)
-                        if expr("At({}, {})".format(p, a)) not in pos:
+                        if expr("At({}, {})".format(p, a)) in pos:
                             count += 1
+                        else:
+                            count += 2
                         break
                 if not in_plane:
                     count += 3
-                    for a in self.airports:
-                        if expr("At({}, {})".format(c, a)) in pos:
-                            waiting[a] += 1
-        for p in plane_list:
-            for a in self.airports:
-                if expr("At({}, {})".format(p, a)) in pos:
-                    empty[a] += 1
-        for a in self.airports:
-            diff = waiting[a] - empty[a]
-            if diff > 0:
-                count += diff
-
         return count
 
 
