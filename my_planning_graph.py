@@ -337,7 +337,6 @@ class PlanningGraph():
                             new.parents.add(s)
                             s.children.add(new)
                 self.a_levels[level].add(new)
-                new.show()
 
 
     def add_literal_level(self, level):
@@ -540,13 +539,12 @@ class PlanningGraph():
         # TODO implement
         # for each goal in the problem, determine the level cost, then add them together
         for goal in self.problem.goal:
+            g = PgNode_s(goal, True)
             not_found = True
             level = 0
             while not_found:
-                for s in self.s_levels[level]:
-                    if goal == s.symbol and s.is_pos:
-                        level_sum += level
-                        not_found = False
-                        break
-                    level += 1
+                if g in self.s_levels[level]:
+                    level_sum += level
+                    not_found = False
+                level += 1
         return level_sum
