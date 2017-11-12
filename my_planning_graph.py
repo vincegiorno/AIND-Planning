@@ -544,8 +544,9 @@ class PlanningGraph():
             level = 0
             while not_found:
                 for s in self.s_levels[level]:
-                    if goal == s.symbol:
+                    if goal == s.symbol and s.is_pos:
                         level_sum += level
                         not_found = False
-                level += 1
+                        break
+                    level += 1
         return level_sum
