@@ -465,13 +465,10 @@ class PlanningGraph():
         """
 
         # TODO test for Competing Needs between nodes
-        for pre1 in node_a1.prenodes:
-            for pre2 in node_a2.prenodes:
-                if pre1.symbol == pre2.symbol and pre1.is_pos != pre2.is_pos:
+        for s1 in node_a1.parents:
+            for s2 in node_a2.parents:
+                if s1.is_mutex(s2):
                     return True
-        pre1.show()
-        pre2.show()
-        print('next')
         return False
 
     def update_s_mutex(self, nodeset: set):
@@ -530,7 +527,7 @@ class PlanningGraph():
         # TODO test for Inconsistent Support between nodes
         for a1 in node_s1.parents:
             for a2 in node_s2.parents:
-                if a1.action != a2.action and not a1.is_mutex(a2):
+                if not a1.is_mutex(a2):
                     return False
         return True
 
