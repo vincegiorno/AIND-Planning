@@ -320,10 +320,16 @@ class PlanningGraph():
         #   to see if a proposed PgNode_a has prenodes that are a subset of the previous S level.  Once an
         #   action node is added, it MUST be connected to the S node instances in the appropriate s_level set.
 
-        literals = [node.symbol for node in self.s_levels[level]]
+        pos_literals = []
+        neg_literals = []
+        for node in self.s_levels[level]:
+            if node.is_pos:
+                pos_literals.append(node.symbol)
+            else:
+                neg_literals.append(node.symbol)
         self.a_levels.append(set())
-        for a in self.problem.actions_list:
-            if PlanningGraph.all_in((a.precond_pos + a.precond_neg), literals):
+        for a in self.all_actions:
+            if PlanningGraph.all_in(a.precond_pos, pos_literals) and PlanningGraph.all_in(a.precond_neg, neg_literals):
                 new = PgNode_a(a)
                 for pre in new.prenodes:
                     for s in self.s_levels[level]:
@@ -331,6 +337,7 @@ class PlanningGraph():
                             new.parents.add(s)
                             s.children.add(new)
                 self.a_levels[level].add(new)
+                new.show()
 
 
     def add_literal_level(self, level):
@@ -462,6 +469,9 @@ class PlanningGraph():
             for pre2 in node_a2.prenodes:
                 if pre1.symbol == pre2.symbol and pre1.is_pos != pre2.is_pos:
                     return True
+        pre1.show()
+        pre2.show()
+        print('next')
         return False
 
     def update_s_mutex(self, nodeset: set):
