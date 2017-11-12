@@ -55,12 +55,15 @@ class AirCargoProblem(Problem):
             :return: list of Action objects
             """
             loads = []
+            # Generate all possible combinations of cargo, plane and airport
             for c in self.cargos:
                 for p in self.planes:
                     for a in self.airports:
+                        # Plane and cargo at same airport are the positive preconditions
                         precond_pos = [expr("At({}, {})".format(p, a)),
                             expr("At({}, {})".format(c, a))]
                         precond_neg = []
+                        # Effects will be cargo in plane and no longer at airport
                         effect_add = [expr("In({}, {})".format(c, p))]
                         effect_rem = [expr("At({}, {})".format(c, a))]
                         load = Action(expr("Load({}, {}, {})".format(c, p, a)),
@@ -78,9 +81,11 @@ class AirCargoProblem(Problem):
             for c in self.cargos:
                 for p in self.planes:
                     for a in self.airports:
+                        # Plane at airport and cargo in plane are the positive preconditions
                         precond_pos = [expr("At({}, {})".format(p, a)),
                             expr("In({}, {})".format(c, p))]
                         precond_neg = []
+                        # Effects are cargo at airport and no longer in plane
                         effect_add = [expr("At({}, {})".format(c, a))]
                         effect_rem = [expr("In({}, {})".format(c, p))]
                         unload = Action(expr("Unload({}, {}, {})".format(c, p, a)),
@@ -95,13 +100,16 @@ class AirCargoProblem(Problem):
             :return: list of Action objects
             """
             flys = []
+            # Generate all possible combinations of 'from' and 'to' airports together with planes
             for fr in self.airports:
                 for to in self.airports:
+                    # Plane can't fly to same airport it leaves from
                     if fr != to:
                         for p in self.planes:
-                            precond_pos = [expr("At({}, {})".format(p, fr)),
-                                           ]
+                            # PLane at airport is the only precondition
+                            precond_pos = [expr("At({}, {})".format(p, fr))]
                             precond_neg = []
+                            # Effects are plane at 'to' airport and no longer at 'from' airport
                             effect_add = [expr("At({}, {})".format(p, to))]
                             effect_rem = [expr("At({}, {})".format(p, fr))]
                             fly = Action(expr("Fly({}, {}, {})".format(p, fr, to)),
@@ -129,9 +137,10 @@ class AirCargoProblem(Problem):
                     return False
             return True
 
-        fluents = decode_state(state, self.state_map)
+        fluents = decode_state(state, self.state_map) # Retrieve the state's fluents as expressions
         possible_actions = []
         for action in self.actions_list:
+            # Action is possible if all positive and negative preconditions are among the fluents
             if all_in(action.precond_pos, fluents.pos) and all_in(action.precond_neg, fluents.neg):
                 possible_actions.append(action)
         return possible_actions
@@ -148,6 +157,7 @@ class AirCargoProblem(Problem):
         fluents = decode_state(state, self.state_map)
         pos = fluents.pos
         neg = fluents.neg
+        # Add positive effects to positive fluents & remove from negative; vice-versa for negative effects
         for effect in action.effect_add:
             if effect in neg:
                 neg.remove(effect)
@@ -202,19 +212,23 @@ class AirCargoProblem(Problem):
         fluents = decode_state(node.state, self.state_map)
         pos = fluents.pos
         count = 0
-        regex = r'(\w+)'
+        regex = r'(\w+)' # Matches stringified action and parameter symbols
         for goal in self.goal:
+            # Only process unmet goals
             if goal not in pos:
-                _, c, a = re.findall(regex, str(goal))
+                _, c, a = re.findall(regex, str(goal)) # Don't need action string since all goals are 'At' expressions
                 in_plane = False
                 for p in self.planes:
+                    # If cargo is in plane, add 1 to count if plane is at the correct airport ('Unload')
                     if expr("In({}, {})".format(c, p)) in pos:
                         in_plane = True
                         if expr("At({}, {})".format(p, a)) in pos:
                             count += 1
+                        # Add 2 to count if plane is not at the correct airport ('Fly' + 'Unload')
                         else:
                             count += 2
                         break
+                # Add 3 to count if cargo not in plane ('Load', 'Fly', 'Unload')
                 if not in_plane:
                     count += 3
         return count
