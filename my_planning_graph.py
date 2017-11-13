@@ -312,16 +312,10 @@ class PlanningGraph():
         :return:
             adds A nodes to the current level in self.a_levels[level]
         """
-        # TODO add action A level to the planning graph as described in the Russell-Norvig text
-        # 1. determine what actions to add and create those PgNode_a objects
-        # 2. connect the nodes to the previous S literal level
-        # for example, the A0 level will iterate through all possible actions for the problem and add a PgNode_a to a_levels[0]
-        #   set iff all prerequisite literals for the action hold in S0.  This can be accomplished by testing
-        #   to see if a proposed PgNode_a has prenodes that are a subset of the previous S level.  Once an
-        #   action node is added, it MUST be connected to the S node instances in the appropriate s_level set.
 
         pos_literals = []
         neg_literals = []
+        # Create lists of expressions to check instead of one-by-one checks accessing node properties
         for node in self.s_levels[level]:
             if node.is_pos:
                 pos_literals.append(node.symbol)
@@ -329,8 +323,10 @@ class PlanningGraph():
                 neg_literals.append(node.symbol)
         self.a_levels.append(set())
         for a in self.all_actions:
+            # Add action if all positive and negative preconditions exist among s_nodes in same lavel
             if PlanningGraph.all_in(a.precond_pos, pos_literals) and PlanningGraph.all_in(a.precond_neg, neg_literals):
                 new = PgNode_a(a)
+                # Prenodes are generated automatically, so add any matching s_nodes as a parent, a_node as its child
                 for pre in new.prenodes:
                     for s in self.s_levels[level]:
                         if pre == s:
@@ -348,17 +344,10 @@ class PlanningGraph():
         :return:
             adds S nodes to the current level in self.s_levels[level]
         """
-        # TODO add literal S level to the planning graph as described in the Russell-Norvig text
-        # 1. determine what literals to add
-        # 2. connect the nodes
-        # for example, every A node in the previous level has a list of S nodes in effnodes that represent the effect
-        #   produced by the action.  These literals will all be part of the new S level.  Since we are working with sets, they
-        #   may be "added" to the set without fear of duplication.  However, it is important to then correctly create and connect
-        #   all of the new S nodes as children of all the A nodes that could produce them, and likewise add the A nodes to the
-        #   parent sets of the S nodes
 
         self.s_levels.append(set())
         for node in self.a_levels[level - 1]:
+            # The action effects nodes are in essence the s_nodes for the next level, so use the info they hold.
             for s in node.effnodes:
                 new = PgNode_s(s.symbol, s.is_pos)
                 new.parents.add(node)
@@ -421,6 +410,7 @@ class PlanningGraph():
         :param node_a2: PgNode_a
         :return: bool
         """
+        # Opposite effects have the same symbol properties but opposite-values is_pos properties
         for eff1 in node_a1.effnodes:
             for eff2 in node_a2.effnodes:
                 if eff2.symbol == eff1.symbol and eff2.is_pos != eff1.is_pos:
@@ -441,7 +431,7 @@ class PlanningGraph():
         :param node_a2: PgNode_a
         :return: bool
         """
-        # TODO test for Interference between nodes
+        # The same-symbol, opposite is_pos test is applied to the effects of each action and the precons of the other
         for eff in node_a1.effnodes:
             for pre in node_a2.prenodes:
                 if eff.symbol == pre.symbol and eff.is_pos != pre.is_pos:
@@ -463,7 +453,7 @@ class PlanningGraph():
         :return: bool
         """
 
-        # TODO test for Competing Needs between nodes
+        # This goes beyond negation. The precons are the parents, and PgNode has an is_mutex method.
         for s1 in node_a1.parents:
             for s2 in node_a2.parents:
                 if s1.is_mutex(s2):
@@ -502,7 +492,7 @@ class PlanningGraph():
         :param node_s2: PgNode_s
         :return: bool
         """
-        # TODO test for negation between nodes
+        # Simple negation
         if node_s1.symbol == node_s2.symbol and node_s1.is_pos != node_s2.is_pos:
             return True
         return False
@@ -523,7 +513,7 @@ class PlanningGraph():
         :param node_s2: PgNode_s
         :return: bool
         """
-        # TODO test for Inconsistent Support between nodes
+        # Similar to competing needs, this involves th parents of the actions, and the is_mutex method can be used.
         for a1 in node_s1.parents:
             for a2 in node_s2.parents:
                 if not a1.is_mutex(a2):
@@ -536,8 +526,7 @@ class PlanningGraph():
         :return: int
         """
         level_sum = 0
-        # TODO implement
-        # for each goal in the problem, determine the level cost, then add them together
+        # Loop through the goals. For each find the first s_level it appears in and add that level number to the sum.
         for goal in self.problem.goal:
             g = PgNode_s(goal, True)
             not_found = True
